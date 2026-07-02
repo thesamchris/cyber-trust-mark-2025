@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Cyber Trust mark — The Ascent</title>
+<meta name="description" content="Climb the five attainment tiers of the CSA Cyber Trust mark. A focused, one-screen preparedness tracker." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#FAFAF8;
+  --panel:#FFFFFF;
+  --ink:#101114;
+  --ink-2:#3A3D44;
+  --soft:#73777E;
+  --faint:#A7AAAF;
+  --line:#E6E6E1;
+  --line-2:#EFEFEA;
+  --cobalt:#2B44FF;       /* single accent */
+  --cobalt-soft:#ECEEFF;
+  --met:#15875A;          /* quiet green for fully-met */
+  --met-soft:#E4F1EB;
+  --tap:44px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:"Space Grotesk",system-ui,sans-serif;
+  font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  height:100dvh;overflow:hidden;
+}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none;}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;}
+.kick{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);}
+
+.app{height:100dvh;width:100%;max-width:600px;margin:0 auto;display:flex;overflow:hidden;background:var(--bg);
+  border-left:1px solid var(--line);border-right:1px solid var(--line);}
+
+/* ===== ascent gauge spine ===== */
+.spine{flex:0 0 58px;display:flex;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top) + 16px) 0 calc(env(safe-area-inset-bottom) + 16px);
+  border-right:1px solid var(--line);background:var(--panel);}
+.spine .cap{font-family:"JetBrains Mono",monospace;font-size:8px;letter-spacing:.12em;color:var(--faint);
+  writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:10px;text-transform:uppercase;}
+.gauge{flex:1;width:100%;position:relative;display:flex;flex-direction:column-reverse;
+  justify-content:space-between;align-items:center;padding:6px 0;}
+.gauge .track{position:absolute;left:50%;top:8px;bottom:8px;width:3px;transform:translateX(-50%);
+  background:var(--line);border-radius:3px;overflow:hidden;}
+.gauge .fill{position:absolute;left:0;bottom:0;width:100%;background:var(--cobalt);
+  border-radius:3px;transition:height .5s cubic-bezier(.2,.8,.2,1);}
+.notch{position:relative;z-index:1;width:30px;height:30px;border-radius:50%;background:var(--panel);
+  border:2px solid var(--line);display:grid;place-items:center;
+  font-family:"JetBrains Mono",monospace;font-weight:600;font-size:13px;color:var(--faint);transition:.25s;}
+.notch[data-reached="true"]{border-color:var(--cobalt);color:var(--cobalt);}
+.notch[data-target="true"]{background:var(--cobalt);border-color:var(--cobalt);color:#fff;
+  box-shadow:0 0 0 4px var(--cobalt-soft);}
+.notch:active{transform:scale(.92);}
+
+/* ===== main column ===== */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.brand{flex:0 0 auto;padding:calc(env(safe-area-inset-top) + 16px) 18px 0;}
+.brand .org{font-weight:700;font-size:21px;line-height:1.05;letter-spacing:-.015em;margin-top:3px;
+  outline:none;border-radius:5px;padding:1px 3px;margin-left:-3px;max-width:80%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brand .org:focus{background:var(--cobalt-soft);box-shadow:0 0 0 1px var(--cobalt);}
+
+/* view swapping — both views share one grid cell, brand stays above */
+.stage{flex:1;min-height:0;display:grid;overflow:hidden;}
+.view{grid-area:1/1;display:flex;flex-direction:column;min-height:0;background:var(--bg);
+  transition:transform .32s cubic-bezier(.2,.8,.2,1), opacity .32s;}
+.main[data-view="list"] .v-detail{transform:translateX(8%);opacity:0;pointer-events:none;}
+.main[data-view="detail"] .v-list{transform:translateX(-6%);opacity:0;pointer-events:none;}
+
+/* target panel */
+.target{flex:0 0 auto;padding:14px 18px 14px;border-bottom:1px solid var(--line-2);}
+.target .row1{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+.target h1{margin:2px 0 0;font-weight:700;font-size:30px;line-height:1;letter-spacing:-.02em;}
+.target .pct{font-family:"JetBrains Mono",monospace;font-weight:600;font-size:26px;line-height:1;color:var(--cobalt);}
+.target .pct.met{color:var(--met);}
+.target .desc{font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.4;}
+.scope{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px;}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;
+  padding:5px 9px;font-size:12px;background:var(--panel);color:var(--ink-2);transition:.15s;}
+.chip .d{width:6px;height:6px;border-radius:50%;background:var(--line);}
+.chip[data-on="true"]{border-color:var(--cobalt);background:var(--cobalt-soft);color:var(--ink);}
+.chip.locked{opacity:.85;} .chip .d.classical{background:var(--soft);}
+.chip[data-on="true"] .d{background:var(--cobalt);}
+.chip:active{transform:scale(.96);}
+
+.list-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:baseline;padding:13px 18px 6px;}
+.list-meta .big{font-weight:600;font-size:13px;}
+.list-scroll{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 12px 24px;}
+.glabel{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);padding:15px 8px 6px;}
+
+.row{width:100%;display:flex;align-items:center;gap:13px;text-align:left;padding:12px 10px;border-radius:9px;transition:background .15s;}
+.row:active{background:var(--line-2);}
+.row.na{opacity:.4;}
+.dot{flex:0 0 auto;width:18px;height:18px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;transition:.2s;}
+.dot svg{width:11px;height:11px;opacity:0;}
+.row.done .dot{background:var(--cobalt);border-color:var(--cobalt);}
+.row.done .dot svg{opacity:1;}
+.row.prog .dot{border-color:var(--cobalt);}
+.row.prog .dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--cobalt);}
+.rmid{flex:1;min-width:0;}
+.rname{display:block;font-weight:500;font-size:15px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rname .ess{font-family:"JetBrains Mono",monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--cobalt);border:1px solid var(--cobalt);border-radius:4px;padding:0 4px;margin-left:6px;vertical-align:1px;}
+.rsub{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--soft);margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row.na .rsub{color:var(--faint);}
+.arr{flex:0 0 auto;color:var(--faint);}
+
+/* ===== detail view ===== */
+.backbar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:14px 14px 12px;
+  border-bottom:1px solid var(--line-2);}
+.backbar button{display:inline-flex;align-items:center;gap:7px;font-family:"JetBrains Mono",monospace;
+  font-size:12px;letter-spacing:.04em;color:var(--cobalt);}
+.detail-head{flex:0 0 auto;padding:14px 18px 12px;border-bottom:1px solid var(--line-2);}
+.detail-head .eyebrow{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);}
+.detail-head h2{margin:4px 0 0;font-weight:700;font-size:22px;line-height:1.12;letter-spacing:-.015em;}
+.detail-head h2 .ess{font-family:"JetBrains Mono",monospace;font-size:8.5px;font-weight:500;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--cobalt);border:1px solid var(--cobalt);border-radius:4px;padding:1px 5px;}
+.detail-head .purpose{font-size:13px;line-height:1.55;color:var(--ink-2);margin-top:9px;}
+.detail-scroll{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:14px 18px calc(env(safe-area-inset-bottom) + 24px);}
+
+.ladder{display:flex;flex-direction:column;gap:10px;}
+.rung{border:1px solid var(--line);border-radius:11px;padding:13px 14px;background:var(--panel);transition:.2s;}
+.rung.future{opacity:.6;border-style:dashed;}
+.rung-top{display:flex;align-items:center;gap:11px;}
+.check{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);background:var(--panel);
+  display:grid;place-items:center;transition:.2s;}
+.check svg{width:13px;height:13px;opacity:0;transform:scale(.4);transition:.2s;}
+.rung.checked .check{background:var(--cobalt);border-color:var(--cobalt);}
+.rung.checked .check svg{opacity:1;transform:scale(1);}
+.rtier{flex:1;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  font-weight:500;color:var(--cobalt);display:flex;align-items:center;gap:8px;}
+.rung.future .rtier{color:var(--soft);}
+.rtier .fp{font-size:8px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--faint);letter-spacing:.06em;}
+.rtext{font-size:13px;line-height:1.5;color:var(--ink-2);margin-top:10px;}
+.rung.checked .rtext{color:var(--soft);}
+
+.ess-block{margin-top:11px;padding:11px 12px;border-radius:9px;background:var(--bg);border:1px solid var(--line-2);}
+.ess-hd{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--cobalt);margin-bottom:8px;}
+.ess-sec{margin-bottom:9px;} .ess-sec:last-child{margin-bottom:0;}
+.ess-sec-hd{font-size:11.5px;font-weight:600;color:var(--ink-2);margin-bottom:5px;}
+.ess-clause{display:flex;gap:8px;font-size:12px;line-height:1.45;color:var(--soft);margin-bottom:5px;}
+.ess-clause:last-child{margin-bottom:0;}
+.ess-clause .eid{font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--faint);flex:0 0 auto;margin-top:2px;}
+
+.pnotes{margin-top:11px;display:flex;flex-direction:column;gap:7px;}
+.pnote{display:flex;gap:9px;font-size:12px;line-height:1.45;padding-left:10px;border-left:2px solid var(--line);}
+.pnote .plab{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;flex:0 0 auto;min-width:32px;margin-top:2px;}
+.pnote .ptxt{color:var(--soft);}
+.pnote.cloud{border-color:#3E83C9;} .pnote.cloud .plab{color:#3E83C9;}
+.pnote.ot{border-color:#C77B2E;} .pnote.ot .plab{color:#C77B2E;}
+.pnote.ai{border-color:#7C5FC9;} .pnote.ai .plab{color:#7C5FC9;}
+.pnote.same .ptxt,.pnote.na .ptxt{color:var(--faint);font-style:italic;}
+
+.detail-foot{margin-top:15px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding-top:13px;border-top:1px solid var(--line-2);}
+.detail-foot .prog{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--soft);}
+.allbtn{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.04em;color:var(--cobalt);
+  border:1px solid var(--line);border-radius:8px;padding:7px 12px;background:var(--panel);}
+.allbtn:active{transform:scale(.96);}
+.src{margin-top:16px;font-size:11px;line-height:1.55;color:var(--faint);}
+.src a{color:var(--soft);}
+.foot-actions{flex:0 0 auto;display:flex;justify-content:flex-end;padding:8px 18px calc(env(safe-area-inset-bottom) + 10px);
+  border-top:1px solid var(--line-2);}
+.foot-actions button{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);}
+
+:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+@media (max-width:360px){ .target h1{font-size:26px;} .spine{flex-basis:50px;} }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ascent gauge -->
+  <div class="spine">
+    <div class="cap">Ascent</div>
+    <div class="gauge" id="gauge">
+      <div class="track"><div class="fill" id="gaugeFill"></div></div>
+    </div>
+  </div>
+
+  <!-- main column -->
+  <div class="main" id="main" data-view="list">
+    <div class="brand">
+      <div class="kick">CSA · Cyber Trust mark</div>
+      <div class="org" id="org" contenteditable="true" spellcheck="false">Our Organisation</div>
+    </div>
+
+    <div class="stage">
+    <!-- LIST VIEW -->
+    <div class="view v-list">
+      <div class="target">
+        <div class="row1">
+          <div><span class="kick">Targeting</span><h1 id="tierName">Supporter</h1></div>
+          <div class="pct" id="tierPct">0%</div>
+        </div>
+        <div class="desc" id="tierDesc"></div>
+        <div class="scope" id="scope"></div>
+      </div>
+      <div class="list-meta"><span class="big" id="readyCount"></span><span class="kick">tap to open</span></div>
+      <div class="list-scroll" id="listScroll"></div>
+      <div class="foot-actions"><button id="reset">Reset progress</button></div>
+    </div>
+
+    <!-- DETAIL VIEW -->
+    <div class="view v-detail">
+      <div class="backbar"><button id="back">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+        All domains</button></div>
+      <div class="detail-head">
+        <div class="eyebrow" id="dEyebrow"></div>
+        <h2 id="dTitle"></h2>
+        <div class="purpose" id="dPurpose"></div>
+      </div>
+      <div class="detail-scroll" id="detailScroll"></div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+
+/* ====== STATE ====== */
+const LS = "ctm-tracker-v1";
+let state = loadState();
+function loadState(){
+  try{const s=JSON.parse(localStorage.getItem(LS));if(s)return s;}catch(e){}
+  return {org:"Our Organisation", target:0, done:{}, pillars:{cloud:false,ot:false,ai:false}};
+}
+function save(){localStorage.setItem(LS, JSON.stringify(state));}
+
+function isChecked(d,tier){return !!(state.done[d.id] && state.done[d.id][tier]);}
+function setChecked(d,tier,v){
+  state.done[d.id] = state.done[d.id]||{};
+  state.done[d.id][tier]=v; save();
+}
+/* tiers a domain requires up to & including target */
+function reqTiersUpTo(d, targetTier){
+  return TIERS.filter((t,i)=> d.req[t] && i<=targetTier);
+}
+function activePillars(){ return PILLARS.filter(p=>state.pillars && state.pillars[p.key]); }
+/* domain status for target: 'todo'|'prog'|'done'|'na' */
+function domainStatus(d, targetTier){
+  if(!d.applicable.includes(TIERS[targetTier])) return "na";
+  const need = reqTiersUpTo(d, targetTier);
+  if(need.length===0) return "na";
+  const got = need.filter(t=>isChecked(d,t)).length;
+  if(got===0) return "todo";
+  if(got===need.length) return "done";
+  return "prog";
+}
+
+/* ====== RENDER — Variant B "The Ascent" ====== */
+const $ = s=>document.querySelector(s);
+const SVG_CHECK=`<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 6.5"/></svg>`;
+const SVG_ARR=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>`;
+
+function overall(){
+  const tName=TIERS[state.target];
+  const doms=DOMAINS.filter(d=>d.applicable.includes(tName));
+  let need=0,got=0,met=0;
+  doms.forEach(d=>{const ts=reqTiersUpTo(d,state.target);need+=ts.length;got+=ts.filter(x=>isChecked(d,x)).length;
+    if(domainStatus(d,state.target)==="done")met++;});
+  return {pct:need?Math.round(got/need*100):0,need,got,met,total:doms.length};
+}
+function tierFullyMet(tierIdx){
+  const t=TIERS[tierIdx];const doms=DOMAINS.filter(d=>d.applicable.includes(t));
+  let need=0,got=0;doms.forEach(d=>{const ts=reqTiersUpTo(d,tierIdx);need+=ts.length;got+=ts.filter(x=>isChecked(d,x)).length;});
+  return need>0&&got===need;
+}
+
+/* ascent gauge — 5 notches bottom(1)→top(5), fill rises to overall % toward target */
+function buildGauge(){
+  const g=$("#gauge");
+  g.querySelectorAll(".notch").forEach(n=>n.remove());
+  // column-reverse: first appended sits at bottom = tier 1
+  TIERS.forEach((t,i)=>{
+    const n=document.createElement("button");
+    n.className="notch";
+    n.dataset.target=(i===state.target);
+    n.dataset.reached=tierFullyMet(i);
+    n.textContent=(i+1);
+    n.title=t;
+    n.setAttribute("aria-label",`Target ${t}`);
+    n.addEventListener("click",()=>{state.target=i;save();render();});
+    g.appendChild(n);
+  });
+  const o=overall();
+  // fill height: progress within the band from tier1 up to the target notch
+  const frac=state.target/(TIERS.length-1); // height of target notch from bottom (0..1)
+  const within=o.pct/100;
+  $("#gaugeFill").style.height=(Math.max(0.02, frac*within)*100)+"%";
+}
+
+function buildScope(){
+  const el=$("#scope");el.innerHTML="";
+  const base=document.createElement("div");base.className="chip locked";base.dataset.on="true";
+  base.innerHTML=`<span class="d classical"></span>Classical`;el.appendChild(base);
+  PILLARS.forEach(p=>{
+    const on=!!(state.pillars&&state.pillars[p.key]);
+    const b=document.createElement("button");b.className="chip";b.dataset.on=on;b.title=p.note;
+    b.innerHTML=`<span class="d ${p.key}"></span>${p.label}`;
+    b.addEventListener("click",()=>{state.pillars=state.pillars||{};state.pillars[p.key]=!on;save();
+      buildScope();if(view==="detail"&&openId!=null)renderDetail();});
+    el.appendChild(b);
+  });
+}
+
+function buildTarget(){
+  const o=overall();const tName=TIERS[state.target];
+  $("#tierName").textContent=tName;
+  const pctEl=$("#tierPct");pctEl.textContent=o.pct+"%";pctEl.classList.toggle("met",o.pct>=100);
+  $("#tierDesc").textContent=TIER_DESC[tName];
+  $("#readyCount").textContent=`${o.met} of ${o.total} domains ready`;
+}
+
+function statusOf(d){return domainStatus(d,state.target);}
+function buildList(){
+  const sc=$("#listScroll");sc.innerHTML="";
+  const tName=TIERS[state.target];
+  const groups=[...new Set(DOMAINS.map(d=>d.group))];
+  groups.forEach(g=>{
+    const lab=document.createElement("div");lab.className="glabel";lab.textContent=g;sc.appendChild(lab);
+    DOMAINS.filter(d=>d.group===g).forEach(d=>{
+      const st=statusOf(d);const na=st==="na";
+      const row=document.createElement("button");
+      row.className="row "+(st==="done"?"done":st==="prog"?"prog":st==="na"?"na":"");
+      const ts=reqTiersUpTo(d,state.target);const got=ts.filter(x=>isChecked(d,x)).length;
+      const sub=na?`Not required · ${tName}`:`${got}/${ts.length} statement${ts.length===1?"":"s"} · entry ${d.entryTier}`;
+      row.innerHTML=`
+        <span class="dot">${SVG_CHECK}</span>
+        <span class="rmid">
+          <span class="rname">${d.name}${d.essentials?'<span class="ess">Ess</span>':""}</span>
+          <span class="rsub">${sub}</span>
+        </span>
+        <span class="arr">${SVG_ARR}</span>`;
+      row.addEventListener("click",()=>openDetail(d.id));
+      sc.appendChild(row);
+    });
+  });
+}
+
+/* ===== detail (navigation disclosure) ===== */
+let view="list", openId=null, showFuture={};
+function openDetail(id){openId=id;view="detail";renderDetail();$("#main").dataset.view="detail";}
+function closeDetail(){view="list";$("#main").dataset.view="list";}
+
+function renderDetail(){
+  const d=DOMAINS.find(x=>x.id==openId);if(!d)return;
+  const targetTier=state.target;
+  $("#dEyebrow").textContent=`Domain ${String(d.id).padStart(2,"0")} · ${d.group}`;
+  $("#dTitle").innerHTML=`${d.name}${d.essentials?' <span class="ess" style="vertical-align:4px">Essentials</span>':""}`;
+  $("#dPurpose").textContent=d.desc;
+  const upto=reqTiersUpTo(d,targetTier);
+  const future=TIERS.filter((t,i)=>d.req[t]&&i>targetTier);
+  const showF=!!showFuture[d.id];
+  const aps=PILLARS.filter(p=>state.pillars&&state.pillars[p.key]);
+
+  const pillarNotes=(t)=>{
+    if(!aps.length)return "";const cell=d.req[t]||{};
+    return `<div class="pnotes">`+aps.map(p=>{
+      const v=cell[p.key];
+      if(v===undefined)return `<div class="pnote ${p.key} na"><span class="plab">${p.label}</span><span class="ptxt">No additional clause at this tier.</span></div>`;
+      if(v==="#")return `<div class="pnote ${p.key} same"><span class="plab">${p.label}</span><span class="ptxt">Same as classical — applies as written above.</span></div>`;
+      return `<div class="pnote ${p.key}"><span class="plab">${p.label}</span><span class="ptxt">${v}</span></div>`;
+    }).join("")+`</div>`;
+  };
+  const essentialsBlock=(t)=>{
+    if(!d.essentialsRef||!ESSENTIALS)return "";
+    if(t!=="Supporter"&&t!=="Practitioner")return "";
+    const kind=t==="Supporter"?"requirements":"recommendations";
+    const label=t==="Supporter"?"Cyber Essentials requirements":"Cyber Essentials recommendations";
+    const sections=d.essentialsRef.map(ref=>{
+      const sec=ESSENTIALS[ref];if(!sec)return "";const clauses=sec[kind]||[];if(!clauses.length)return "";
+      return `<div class="ess-sec"><div class="ess-sec-hd">${ref} ${sec.title}</div>
+        ${clauses.map(c=>`<div class="ess-clause"><span class="eid">${c.id}</span><span>${c.text}</span></div>`).join("")}</div>`;
+    }).join("");
+    if(!sections)return "";
+    return `<div class="ess-block"><div class="ess-hd">${label} · Cyber Essentials mark, Annex A</div>${sections}</div>`;
+  };
+  const rung=(t,isFuture)=>{
+    const checked=!isFuture&&isChecked(d,t);
+    return `<div class="rung ${checked?"checked":""} ${isFuture?"future":""}" data-tier="${t}" data-future="${isFuture}">
+      <div class="rung-top"><div class="check">${SVG_CHECK}</div>
+      <div class="rtier">${t}${isFuture?'<span class="fp">future</span>':""}</div></div>
+      <div class="rtext">${d.req[t].classical}</div>${essentialsBlock(t)}${pillarNotes(t)}</div>`;
+  };
+  let ladder=upto.map(t=>rung(t,false)).join("");
+  if(showF)ladder+=future.map(t=>rung(t,true)).join("");
+  const got=upto.filter(t=>isChecked(d,t)).length;
+
+  $("#detailScroll").innerHTML=`
+    <div class="ladder">${ladder||'<div class="purpose" style="opacity:.6">Not assessable at the '+TIERS[targetTier]+' tier.</div>'}</div>
+    <div class="detail-foot">
+      <span class="prog">${got}/${upto.length} met · entry ${d.entryTier}</span>
+      ${future.length?`<button class="allbtn" id="futureBtn">${showF?"Hide":"Preview"} future tiers</button>`:""}
+    </div>
+    <div class="src">Source: CSA Cyber Trust mark, 2nd ed. (04-2025), Annex B &amp; Table 7; Cyber Essentials mark (04-2025), Annex A.
+    Requirement text summarises the classical-cybersecurity column — see the
+    <a href="https://www.csa.gov.sg/cyber-trust" target="_blank" rel="noopener">official publication</a> for authoritative wording. Progress saved on this device only.</div>`;
+
+  $("#detailScroll").querySelectorAll(".rung").forEach(r=>{
+    if(r.dataset.future==="true")return;
+    r.addEventListener("click",()=>{const t=r.dataset.tier;setChecked(d,t,!isChecked(d,t));
+      renderDetail();buildList();buildTarget();buildGauge();});
+  });
+  const fb=$("#futureBtn");if(fb)fb.addEventListener("click",()=>{showFuture[d.id]=!showF;renderDetail();});
+}
+
+function render(){buildGauge();buildScope();buildTarget();buildList();}
+
+/* ====== INIT ====== */
+function init(){
+  const org=$("#org");org.textContent=state.org||"Our Organisation";
+  org.addEventListener("blur",()=>{state.org=org.textContent.trim()||"Our Organisation";org.textContent=state.org;save();});
+  org.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();org.blur();}});
+  $("#reset").addEventListener("click",()=>{if(confirm("Reset all tracked progress on this device?")){state.done={};save();render();if(view==="detail")renderDetail();}});
+  $("#back").addEventListener("click",closeDetail);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&view==="detail")closeDetail();});
+  render();
+}
+init();
+</script>
+</body>
+</html>
